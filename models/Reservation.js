@@ -4,11 +4,12 @@ const reservationSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "users",
       required: true,
     },
-    service: {
-      type: String,
+    serviceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "services",
       required: true,
     },
     date: {
@@ -28,4 +29,4 @@ const reservationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Reservation", reservationSchema);
+module.exports = mongoose.model("reservations", reservationSchema);
