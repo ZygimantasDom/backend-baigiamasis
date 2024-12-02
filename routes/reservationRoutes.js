@@ -7,7 +7,8 @@ const mongoose = require("mongoose");
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-  const { firstName, lastName, email, phone, service, date, time } = req.body;
+  const { firstName, lastName, email, phone, service, date, time, price } =
+    req.body;
 
   if (
     !firstName ||
@@ -47,7 +48,7 @@ router.post("/", async (req, res) => {
 
     const populatedReservation = await Reservation.findById(reservation._id)
       .populate("userId", "name email phone")
-      .populate("serviceId", "name");
+      .populate("serviceId", "name price");
 
     res.status(201).json(populatedReservation);
   } catch (error) {
@@ -60,7 +61,7 @@ router.get("/", async (req, res) => {
   try {
     const reservations = await Reservation.find()
       .populate("userId", "name email phone")
-      .populate("serviceId", "name");
+      .populate("serviceId", "name price");
 
     res.status(200).json(reservations);
   } catch (error) {
@@ -75,7 +76,7 @@ router.get("/:id", async (req, res) => {
   try {
     const reservation = await Reservation.findById(id)
       .populate("userId", "name email phone")
-      .populate("serviceId", "name");
+      .populate("serviceId", "name price");
     if (!reservation) {
       return res.status(404).json({ message: "Rezervacija nerasta." });
     }
@@ -85,21 +86,26 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.patch("/:id", async (req, res) => {
   const { id } = req.params;
   const { date, time, status } = req.body;
 
   try {
-    const reservation = await Reservation.findByIdAndUpdate(
+    const updatedReservation = await Reservation.findByIdAndUpdate(
       id,
       { date, time, status },
       { new: true }
-    );
-    if (!reservation) {
+    )
+      .populate("userId", "name email phone")
+      .populate("serviceId", "name price");
+
+    if (!updatedReservation) {
       return res.status(404).json({ message: "Rezervacija nerasta." });
     }
-    res.status(200).json(reservation);
+
+    res.status(200).json(updatedReservation);
   } catch (error) {
+    console.error("Klaida atnaujinant rezervaciją:", error);
     res
       .status(500)
       .json({ message: "Nepavyko atnaujinti rezervacijos.", error });
@@ -110,12 +116,15 @@ router.delete("/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    const reservation = await Reservation.findByIdAndDelete(id);
-    if (!reservation) {
+    const deletedReservation = await Reservation.findByIdAndDelete(id);
+
+    if (!deletedReservation) {
       return res.status(404).json({ message: "Rezervacija nerasta." });
     }
-    res.status(200).json({ message: "Rezervacija ištrinta." });
+
+    res.status(200).json({ message: "Rezervacija sėkmingai ištrinta." });
   } catch (error) {
+    console.error("Klaida ištrinant rezervaciją:", error);
     res.status(500).json({ message: "Nepavyko ištrinti rezervacijos.", error });
   }
 });
