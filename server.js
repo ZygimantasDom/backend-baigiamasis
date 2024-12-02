@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
 const reservationRoutes = require("./routes/reservationRoutes");
+const serviceRoutes = require("./routes/serviceRoutes");
 mongoose.set("debug", true);
 
 const app = express();
@@ -14,6 +15,7 @@ app.use(express.json());
 
 app.use("/users", userRoutes);
 app.use("/reservations", reservationRoutes);
+app.use("/services", serviceRoutes);
 
 mongoose
   .connect(process.env.MONGO_URI)

@@ -7,62 +7,49 @@ const mongoose = require("mongoose");
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-  const { userId, serviceId, date, time, status } = req.body;
+  const { firstName, lastName, email, phone, service, date, time } = req.body;
 
-  if (!userId || !serviceId || !date || !time) {
+  if (
+    !firstName ||
+    !lastName ||
+    !email ||
+    !phone ||
+    !service ||
+    !date ||
+    !time
+  ) {
     return res.status(400).json({ message: "Trūksta privalomų laukų." });
   }
 
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
-    return res
-      .status(400)
-      .json({ message: "Neteisingas naudotojo ID formatas." });
-  }
-
-  if (!mongoose.Types.ObjectId.isValid(serviceId)) {
-    return res
-      .status(400)
-      .json({ message: "Neteisingas paslaugos ID formatas." });
-  }
-
   try {
-    console.log("Tikrinama, ar naudotojas egzistuoja...");
-    const user = await User.findById(userId);
+    let user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: "Naudotojas nerastas." });
+      user = new User({
+        name: `${firstName} ${lastName}`,
+        email,
+        phone,
+      });
+      await user.save();
     }
 
-    console.log("Tikrinama, ar paslauga egzistuoja...");
-    const service = await Service.findById(serviceId);
-    if (!service) {
+    const serviceDoc = await Service.findOne({ name: service });
+    if (!serviceDoc) {
       return res.status(404).json({ message: "Paslauga nerasta." });
     }
 
-    console.log("Tikrinama, ar tokia rezervacija jau egzistuoja...");
-    const existingReservation = await Reservation.findOne({
-      userId,
-      serviceId,
-      date,
-      time,
-    });
-
-    if (existingReservation) {
-      return res
-        .status(400)
-        .json({ message: "Rezervacija jau egzistuoja šiuo laiku." });
-    }
-
-    console.log("Kuriama nauja rezervacija...");
     const reservation = new Reservation({
-      userId,
-      serviceId,
+      userId: user._id,
+      serviceId: serviceDoc._id,
       date,
       time,
-      status,
     });
     await reservation.save();
 
-    res.status(201).json(reservation);
+    const populatedReservation = await Reservation.findById(reservation._id)
+      .populate("userId", "name email phone")
+      .populate("serviceId", "name");
+
+    res.status(201).json(populatedReservation);
   } catch (error) {
     console.error("Klaida kuriant rezervaciją:", error);
     res.status(500).json({ message: "Nepavyko sukurti rezervacijos.", error });
@@ -73,13 +60,12 @@ router.get("/", async (req, res) => {
   try {
     const reservations = await Reservation.find()
       .populate("userId", "name email phone")
-      .populate("serviceId", "name price");
+      .populate("serviceId", "name");
+
     res.status(200).json(reservations);
   } catch (error) {
     console.error("Klaida gaunant rezervacijas:", error);
-    res
-      .status(500)
-      .json({ message: "Nepavyko gauti rezervacijų.", details: error.message });
+    res.status(500).json({ message: "Nepavyko gauti rezervacijų.", error });
   }
 });
 
@@ -89,7 +75,7 @@ router.get("/:id", async (req, res) => {
   try {
     const reservation = await Reservation.findById(id)
       .populate("userId", "name email phone")
-      .populate("serviceId", "name price");
+      .populate("serviceId", "name");
     if (!reservation) {
       return res.status(404).json({ message: "Rezervacija nerasta." });
     }
