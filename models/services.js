@@ -9,10 +9,6 @@ const serviceSchema = new mongoose.Schema({
   description: {
     type: String,
   },
-  price: {
-    type: Number,
-    required: true,
-  },
 });
 
 module.exports = mongoose.model("services", serviceSchema);
